@@ -1,0 +1,1205 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8"/>
+<meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+<title>Study Planner — DBMS Project</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Syne:wght@400;600;700;800&family=DM+Sans:wght@300;400;500;600&family=DM+Serif+Display:ital@0;1&display=swap" rel="stylesheet">
+<script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.1/chart.umd.js"></script>
+
+<style>
+
+*, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+html, body { height: 100%; font-family: 'DM Sans', sans-serif; overflow: hidden; }
+
+
+#screen-login    { display: flex; height: 100vh; width: 100vw; }
+#screen-dashboard{ display: none; height: 100vh; width: 100vw; }
+
+#screen-login {
+  --bg:        #0b0f1a;
+  --border:    rgba(255,255,255,0.07);
+  --accent:    #ff9100;
+  --accent2:   #ff5e00;
+  --text:      #f0f4f8;
+  --muted:     #8b9ab5;
+  --danger:    #f87171;
+  --input-bg:  #1a2235;
+  --radius:    14px;
+  background: var(--bg);
+  color: var(--text);
+  position: relative;
+}
+
+/* animated background */
+.bg-mesh {
+  position: fixed; inset: 0; z-index: 0;
+  background:
+    radial-gradient(ellipse 60% 50% at 20% 20%, rgba(74,222,128,.12) 0%, transparent 60%),
+    radial-gradient(ellipse 50% 60% at 80% 80%, rgba(34,211,238,.10) 0%, transparent 60%),
+    radial-gradient(ellipse 40% 40% at 50% 50%, rgba(99,102,241,.06) 0%, transparent 70%);
+  animation: meshShift 12s ease-in-out infinite alternate;
+}
+@keyframes meshShift {
+  0%   { filter: hue-rotate(0deg);  transform: scale(1); }
+  100% { filter: hue-rotate(20deg); transform: scale(1.03); }
+}
+.orb { position: fixed; border-radius: 50%; filter: blur(80px); opacity: .18; z-index: 0; animation: orbFloat 10s ease-in-out infinite alternate; }
+.orb1 { width:340px; height:340px; background:#ff9100; top:-80px;    left:-80px;    }
+.orb2 { width:280px; height:280px; background:#ff5e00; bottom:-60px; right:-60px;   animation-delay:-4s; }
+@keyframes orbFloat { from{transform:translate(0,0) scale(1);} to{transform:translate(30px,30px) scale(1.08);} }
+.grid-lines {
+  position: fixed; inset: 0; z-index: 0; opacity: .035;
+  background-image: linear-gradient(#ff9100 1px, transparent 1px), linear-gradient(90deg, #ff9100 1px, transparent 1px);
+  background-size: 60px 60px;
+}
+
+.login-layout {
+  position: relative; z-index: 1;
+  display: grid;
+  grid-template-columns: 1fr 480px;
+  min-height: 100vh; width: 100%;
+}
+
+/* Hero Left */
+.hero {
+  display: flex; flex-direction: column; justify-content: center;
+  padding: 60px 72px;
+  border-right: 1px solid rgba(255,255,255,0.07);
+}
+.logo-text-hero {
+  font-family: 'Syne', sans-serif; font-size: 1.5rem; font-weight: 800;
+  color: #ff9100; margin-bottom: 40px; letter-spacing: -0.5px;
+}
+.hero-title {
+  font-family: 'Syne', sans-serif;
+  font-size: clamp(2.4rem, 4vw, 3.6rem); font-weight: 800; line-height: 1.1; margin-bottom: 24px;
+  background: linear-gradient(135deg, #fff 40%, #ff9100 100%);
+  -webkit-background-clip: text; -webkit-text-fill-color: transparent; background-clip: text;
+}
+.hero-sub { font-size: 1.05rem; color: #8b9ab5; line-height: 1.7; max-width: 440px; margin-bottom: 52px; }
+.stats { display: flex; gap: 36px; }
+.stat-item { display: flex; flex-direction: column; gap: 4px; }
+.stat-val {
+  font-family: 'Syne', sans-serif; font-size: 1.8rem; font-weight: 800;
+  background: linear-gradient(90deg, #ff9100, #ff5e00);
+  -webkit-background-clip: text; -webkit-text-fill-color: transparent; background-clip: text;
+}
+.stat-lbl { font-size: .8rem; color: #8b9ab5; text-transform: uppercase; letter-spacing: 1px; }
+.features { display: flex; flex-wrap: wrap; gap: 10px; margin-top: 48px; }
+.pill {
+  display: flex; align-items: center; gap: 7px; padding: 8px 14px; border-radius: 100px;
+  border: 1px solid rgba(255,255,255,0.07); background: rgba(255,255,255,.04);
+  font-size: .8rem; color: #8b9ab5; backdrop-filter: blur(8px);
+}
+.pill .dot { width: 6px; height: 6px; border-radius: 50%; background: #ff9100; }
+
+/* Login Panel Right */
+.login-panel {
+  display: flex; align-items: center; justify-content: center;
+  padding: 48px 40px;
+  background: rgba(17,24,39,.6);
+  backdrop-filter: blur(20px);
+}
+.login-card { width: 100%; max-width: 380px; animation: cardIn .6s cubic-bezier(.22,1,.36,1) both; }
+@keyframes cardIn { from{opacity:0;transform:translateY(28px);} to{opacity:1;transform:translateY(0);} }
+.card-header { margin-bottom: 36px; }
+.card-header h2 { font-family: 'Syne', sans-serif; font-size: 1.75rem; font-weight: 700; margin-bottom: 8px; color: #f0f4f8; }
+.card-header p  { font-size: .9rem; color: #8b9ab5; }
+
+.db-status { display: flex; align-items: center; gap: 7px; font-size: .75rem; color: #8b9ab5; margin-bottom: 28px; }
+.db-dot { width: 7px; height: 7px; border-radius: 50%; background: #f87171; animation: pulse 2s infinite; }
+.db-dot.ok { background: #ff9100; }
+@keyframes pulse { 0%,100%{opacity:1;} 50%{opacity:.4;} }
+
+.login-alert {
+  display: none; align-items: center; gap: 10px;
+  padding: 12px 16px; border-radius: 14px; font-size: .88rem; margin-bottom: 20px; border: 1px solid;
+}
+.login-alert.error   { background: rgba(248,113,113,.1); border-color: rgba(248,113,113,.3); color: #f87171; display: flex; }
+.login-alert.success { background: rgba(255,145,0,.1);   border-color: rgba(255,145,0,.3);   color: #ff9100; display: flex; }
+
+.role-toggle {
+  display: grid; grid-template-columns: 1fr 1fr;
+  background: #1a2235; border: 1px solid rgba(255,255,255,0.07);
+  border-radius: 14px; overflow: hidden; margin-bottom: 24px;
+}
+.role-toggle input[type=radio] { display: none; }
+.role-toggle label { padding: 11px; text-align: center; font-size: .85rem; color: #8b9ab5; cursor: pointer; transition: .2s; }
+.role-toggle input:checked + label { background: rgba(255,145,0,.15); color: #ff9100; }
+
+.field { margin-bottom: 20px; }
+.field label { display: block; font-size: .8rem; color: #8b9ab5; text-transform: uppercase; letter-spacing: .8px; margin-bottom: 8px; font-weight: 500; }
+.input-wrap { position: relative; }
+.input-wrap .iicon { position: absolute; left: 14px; top: 50%; transform: translateY(-50%); color: #8b9ab5; pointer-events: none; }
+.input-wrap input {
+  width: 100%; padding: 13px 14px 13px 42px;
+  background: #1a2235; border: 1px solid rgba(255,255,255,0.07);
+  border-radius: 14px; color: #f0f4f8;
+  font-family: 'DM Sans', sans-serif; font-size: .95rem; outline: none;
+  transition: border-color .2s, box-shadow .2s;
+}
+.input-wrap input:focus { border-color: #ff9100; box-shadow: 0 0 0 3px rgba(255,145,0,.12); }
+.toggle-pw {
+  position: absolute; right: 14px; top: 50%; transform: translateY(-50%);
+  background: none; border: none; cursor: pointer; color: #8b9ab5; font-size: 14px; padding: 4px;
+}
+.btn-login {
+  width: 100%; padding: 14px;
+  background: linear-gradient(135deg, #ff9100, #ff5e00);
+  border: none; border-radius: 14px; color: #0b0f1a;
+  font-family: 'Syne', sans-serif; font-size: 1rem; font-weight: 700; cursor: pointer; transition: .2s;
+}
+.btn-login:hover:not(:disabled) { opacity:.92; transform:translateY(-1px); box-shadow:0 8px 28px rgba(255,145,0,.3); }
+.btn-login:disabled { opacity: .6; cursor: not-allowed; }
+.spinner {
+  display: inline-block; width: 16px; height: 16px;
+  border: 2px solid rgba(0,0,0,.2); border-top-color: #0b0f1a;
+  border-radius: 50%; animation: spin .6s linear infinite; margin-right: 8px; vertical-align: middle;
+}
+@keyframes spin { to{transform:rotate(360deg);} }
+.divider { display: flex; align-items: center; gap: 12px; color: #8b9ab5; font-size: .8rem; margin: 24px 0; }
+.divider::before, .divider::after { content:''; flex:1; height:1px; background:rgba(255,255,255,0.07); }
+.footer-note { text-align: center; font-size: .82rem; color: #8b9ab5; margin-top: 12px; }
+.footer-note a { color: #ff9100; text-decoration: none; }
+
+@media(max-width:860px){
+  .login-layout { grid-template-columns: 1fr; }
+  .hero { display: none; }
+}
+
+/* ════════════════════════════════════════
+   TRANSITION OVERLAY
+════════════════════════════════════════ */
+#transition-overlay {
+  display: none;
+  position: fixed; inset: 0; z-index: 9999;
+  background: #0b0f1a;
+  align-items: center; justify-content: center;
+  flex-direction: column; gap: 20px;
+}
+#transition-overlay.active { display: flex; }
+.transition-logo { font-family:'Syne',sans-serif; font-size:2rem; font-weight:800; color:#ff9100; }
+.transition-bar { width: 200px; height: 3px; background: rgba(255,145,0,.2); border-radius: 3px; overflow: hidden; }
+.transition-fill { height: 100%; background: linear-gradient(90deg,#ff9100,#ff5e00); border-radius: 3px; animation: loadBar 1.2s ease forwards; }
+@keyframes loadBar { from{width:0;} to{width:100%;} }
+.transition-msg { font-size: .85rem; color: #8b9ab5; }
+
+/* ════════════════════════════════════════
+   DASHBOARD SCREEN (from studyPlanner)
+════════════════════════════════════════ */
+#screen-dashboard {
+  --bg: #0d0f14;
+  --surface: #151820;
+  --card: #1c2030;
+  --border: #252a38;
+  --accent: #FF5733;
+  --accent2: #900C3F;
+  --danger: #C70039;
+  --warn: #FFC30F;
+  --success: #34d399;
+  --text: #e8eaf0;
+  --muted: #7a829a;
+  --dim: #3a4055;
+  --font: 'DM Sans', sans-serif;
+  --serif: 'DM Serif Display', serif;
+  background: var(--bg);
+  color: var(--text);
+}
+
+#screen-dashboard body, #screen-dashboard * { color: inherit; }
+
+.db-sidebar {
+  width: 220px; background: var(--surface); border-right: 1px solid var(--border);
+  display: flex; flex-direction: column; padding: 24px 0; flex-shrink: 0;
+  position: sticky; top: 0; height: 100vh;
+}
+.db-logo { padding: 0 20px 24px; border-bottom: 1px solid var(--border); margin-bottom: 16px; }
+.db-logo-text { font-family: var(--serif); font-size: 22px; color: var(--accent); letter-spacing: -.5px; }
+.db-logo-sub  { font-size: 11px; color: var(--muted); letter-spacing: 2px; text-transform: uppercase; margin-top: 2px; }
+.nav-item {
+  display: flex; align-items: center; gap: 10px; padding: 10px 20px; cursor: pointer;
+  font-size: 13.5px; color: var(--muted); transition: .15s; margin: 1px 0; border-left: 2px solid transparent;
+}
+.nav-item:hover { color: var(--text); background: rgba(255,87,51,.06); }
+.nav-item.active { color: var(--accent); background: rgba(255,87,51,.08); border-left: 2px solid var(--accent); }
+.nav-icon { font-size: 16px; width: 18px; text-align: center; }
+.sidebar-section { font-size: 10px; letter-spacing: 2px; color: var(--dim); padding: 16px 20px 6px; text-transform: uppercase; }
+.user-block { margin-top: auto; padding: 16px 20px; border-top: 1px solid var(--border); }
+.user-avatar { width:34px; height:34px; border-radius:50%; background:linear-gradient(135deg,var(--accent),var(--accent2)); display:flex; align-items:center; justify-content:center; font-size:13px; font-weight:600; color:#fff; flex-shrink:0; }
+.user-info { display: flex; align-items: center; gap: 10px; }
+.user-name { font-size: 13px; font-weight: 500; }
+.user-role { font-size: 11px; color: var(--muted); }
+.logout-btn {
+  margin: 8px 20px 0; padding: 7px 12px; font-size: 12px;
+  background: rgba(248,113,113,.08); border: 1px solid rgba(248,113,113,.2);
+  border-radius: 8px; color: #f87171; cursor: pointer; text-align: center; transition: .15s;
+}
+.logout-btn:hover { background: rgba(248,113,113,.15); }
+
+.db-main { flex: 1; overflow-y: auto; }
+.db-page { display: none; padding: 28px 32px; max-width: 1100px; }
+.db-page.active { display: block; }
+.page-header { margin-bottom: 28px; }
+.page-title { font-family: var(--serif); font-size: 28px; color: var(--text); letter-spacing: -.5px; }
+.page-sub { font-size: 13px; color: var(--muted); margin-top: 4px; }
+.stats-row { display: grid; grid-template-columns: repeat(4,1fr); gap: 14px; margin-bottom: 24px; }
+.stat-card { background: var(--card); border: 1px solid var(--border); border-radius: 12px; padding: 18px 20px; }
+.stat-label { font-size: 11px; color: var(--muted); text-transform: uppercase; letter-spacing: 1.5px; margin-bottom: 8px; }
+.stat-value { font-size: 28px; font-weight: 600; line-height: 1; }
+.stat-change { font-size: 11px; margin-top: 6px; }
+.stat-change.up { color: var(--success); }
+.stat-change.warn { color: var(--warn); }
+.card { background: var(--card); border: 1px solid var(--border); border-radius: 12px; padding: 20px; }
+.card-hdr { display: flex; justify-content: space-between; align-items: center; margin-bottom: 16px; }
+.card-title { font-size: 14px; font-weight: 500; color: var(--text); }
+.grid-2 { display: grid; grid-template-columns: 1fr 1fr; gap: 16px; margin-bottom: 16px; }
+.subject-list { display: flex; flex-direction: column; gap: 8px; }
+.subject-item {
+  display: flex; align-items: center; gap: 12px; padding: 12px 14px;
+  background: var(--surface); border-radius: 8px; border: 1px solid var(--border);
+  cursor: pointer; transition: .15s;
+}
+.subject-item:hover { border-color: var(--accent); }
+.subject-dot { width:10px; height:10px; border-radius:50%; flex-shrink:0; }
+.subject-name { font-size:13.5px; font-weight:500; flex:1; }
+.subject-faculty { font-size:11px; color:var(--muted); }
+.badge { padding:3px 10px; border-radius:20px; font-size:11px; font-weight:500; }
+.badge-high   { background:rgba(248,113,113,.12); color:#f87171; }
+.badge-medium { background:rgba(251,191,36,.1);   color:#fbbf24; }
+.badge-low    { background:rgba(52,211,153,.1);   color:#34d399; }
+.event-list { display: flex; flex-direction: column; gap: 8px; }
+.event-item { display:flex; align-items:center; gap:12px; padding:10px 0; border-bottom:1px solid var(--border); }
+.event-item:last-child { border-bottom: none; }
+.event-date-box { width:40px; height:40px; border-radius:8px; display:flex; flex-direction:column; align-items:center; justify-content:center; flex-shrink:0; }
+.event-day   { font-size:16px; font-weight:700; line-height:1; }
+.event-month { font-size:9px; letter-spacing:1px; text-transform:uppercase; opacity:.7; }
+.event-type  { padding:2px 8px; border-radius:4px; font-size:10px; font-weight:600; letter-spacing:.5px; }
+.type-CT         { background:rgba(255,87,51,.15);  color:var(--accent); }
+.type-MID        { background:rgba(144,12,63,.15);  color:#e05080; }
+.type-FINAL      { background:rgba(199,0,57,.15);   color:var(--danger); }
+.type-ASSIGNMENT { background:rgba(255,192,15,.12); color:var(--warn); }
+.type-HOLIDAY    { background:rgba(52,211,153,.1);  color:var(--success); }
+.schedule-row { display:grid; grid-template-columns:140px 1fr auto; align-items:center; gap:12px; padding:10px 0; border-bottom:1px solid var(--border); }
+.schedule-subject { font-size:13px; font-weight:500; }
+.progress-bar { height:6px; background:var(--dim); border-radius:3px; position:relative; overflow:hidden; }
+.progress-fill { height:100%; border-radius:3px; transition:.3s; }
+.progress-label { font-size:12px; color:var(--muted); white-space:nowrap; }
+.task-item { display:flex; align-items:flex-start; gap:12px; padding:12px 0; border-bottom:1px solid var(--border); }
+.task-check { width:18px; height:18px; border-radius:4px; border:1.5px solid var(--dim); cursor:pointer; flex-shrink:0; display:flex; align-items:center; justify-content:center; margin-top:1px; transition:.15s; }
+.task-check:hover { border-color:var(--accent); }
+.task-check.done { background:var(--accent); border-color:var(--accent); }
+.task-title { font-size:13.5px; font-weight:500; }
+.task-title.done { text-decoration:line-through; color:var(--muted); }
+.task-meta { font-size:11px; color:var(--muted); margin-top:2px; }
+.lb-row { display:flex; align-items:center; gap:12px; padding:10px 0; border-bottom:1px solid var(--border); }
+.lb-rank { font-size:16px; font-weight:700; width:28px; color:var(--muted); text-align:center; }
+.lb-rank.gold{color:#f59e0b;} .lb-rank.silver{color:#94a3b8;} .lb-rank.bronze{color:#b45309;}
+.lb-avatar { width:34px; height:34px; border-radius:50%; display:flex; align-items:center; justify-content:center; font-size:13px; font-weight:600; color:#fff; flex-shrink:0; }
+.lb-name { flex:1; font-size:13.5px; font-weight:500; }
+.lb-points { font-size:13px; color:var(--accent); }
+.db-btn { padding:8px 16px; border-radius:8px; border:1px solid var(--border); background:var(--surface); color:var(--text); font-family:var(--font); font-size:13px; cursor:pointer; transition:.15s; display:inline-flex; align-items:center; gap:6px; }
+.db-btn:hover { border-color:var(--accent); color:var(--accent); }
+.db-btn-primary { background:var(--accent); border-color:var(--accent); color:#fff; }
+.db-btn-primary:hover { opacity:.9; color:#fff; }
+.overlay { display:none; position:fixed; inset:0; background:rgba(0,0,0,.6); backdrop-filter:blur(4px); z-index:100; align-items:center; justify-content:center; }
+.overlay.open { display:flex; }
+.modal { background:var(--card); border:1px solid var(--border); border-radius:16px; padding:28px; width:420px; max-width:90vw; }
+.modal-title { font-family:var(--serif); font-size:20px; margin-bottom:20px; color:var(--text); }
+.form-group { margin-bottom:14px; }
+.form-label { font-size:12px; color:var(--muted); margin-bottom:6px; display:block; text-transform:uppercase; letter-spacing:1px; }
+.form-input { width:100%; padding:10px 12px; background:var(--surface); border:1px solid var(--border); border-radius:8px; color:var(--text); font-family:var(--font); font-size:13.5px; outline:none; transition:.15s; }
+.form-input:focus { border-color:var(--accent); }
+.form-row { display:flex; gap:10px; }
+.form-row .form-group { flex:1; }
+.modal-actions { display:flex; gap:10px; justify-content:flex-end; margin-top:20px; }
+.chart-wrap { position:relative; width:100%; height:200px; }
+.streak-badge { display:inline-flex; align-items:center; gap:6px; padding:6px 14px; background:rgba(255,192,15,.1); border-radius:20px; font-size:13px; color:var(--warn); }
+::-webkit-scrollbar { width:5px; }
+::-webkit-scrollbar-track { background:transparent; }
+::-webkit-scrollbar-thumb { background:var(--dim); border-radius:3px; }
+.analytics-grid { display:grid; grid-template-columns:1fr 1fr; gap:16px; }
+.session-timer { font-family:var(--serif); font-size:48px; color:var(--accent); text-align:center; padding:24px 0; }
+.timer-controls { display:flex; justify-content:center; gap:12px; margin-top:8px; }
+.group-card { background:var(--surface); border:1px solid var(--border); border-radius:10px; padding:16px; display:flex; flex-direction:column; gap:8px; }
+.group-avatar { width:28px; height:28px; border-radius:50%; border:2px solid var(--card); margin-left:-6px; display:flex; align-items:center; justify-content:center; font-size:10px; font-weight:600; color:#fff; }
+.group-avatar:first-child { margin-left:0; }
+
+/* Welcome banner in dashboard */
+.welcome-banner {
+  background: linear-gradient(135deg, rgba(255,87,51,.15), rgba(144,12,63,.1));
+  border: 1px solid rgba(255,87,51,.2); border-radius: 12px;
+  padding: 16px 20px; margin-bottom: 24px;
+  display: flex; align-items: center; justify-content: space-between;
+}
+.welcome-text { font-size: 14px; }
+.welcome-user { font-weight: 600; color: var(--accent); }
+
+/* Backend connection indicator */
+.api-status {
+  display: flex; align-items: center; gap: 6px;
+  font-size: 11px; color: var(--muted); padding: 8px 20px;
+}
+.api-dot { width:6px; height:6px; border-radius:50%; background:#34d399; animation: pulse2 2s infinite; }
+.api-dot.offline { background: #f87171; }
+@keyframes pulse2 { 0%,100%{opacity:1;} 50%{opacity:.4;} }
+
+@media(max-width:700px){
+  .db-sidebar { width:56px; }
+  .db-sidebar .nav-item span, .db-logo-sub, .db-logo-text, .sidebar-section, .user-info { display:none; }
+  .stats-row { grid-template-columns:1fr 1fr; }
+  .grid-2, .analytics-grid { grid-template-columns:1fr; }
+}
+</style>
+</head>
+<body>
+
+<!-- ══════════════════════════════════════
+     TRANSITION OVERLAY
+══════════════════════════════════════ -->
+<div id="transition-overlay">
+  <div class="transition-logo">Study<em style="font-style:normal;color:#ff5e00">Planner</em></div>
+  <div class="transition-bar"><div class="transition-fill"></div></div>
+  <div class="transition-msg" id="trans-msg">Authenticating...</div>
+</div>
+
+<!-- ══════════════════════════════════════
+     LOGIN SCREEN
+══════════════════════════════════════ -->
+<div id="screen-login">
+  <div class="bg-mesh"></div>
+  <div class="orb orb1"></div>
+  <div class="orb orb2"></div>
+  <div class="grid-lines"></div>
+
+  <div class="login-layout">
+    <!-- LEFT HERO -->
+    <div class="hero">
+      <div class="logo-text-hero">📚 StudyPlanner</div>
+      <h1 class="hero-title">Plan Smart.<br>Study Hard.<br>Achieve More.</h1>
+      <p class="hero-sub">
+        A unified platform to manage your subjects, track exam results, schedule study sessions,
+        and stay ahead every trimester.
+      </p>
+      <div class="stats">
+        <div class="stat-item"><span class="stat-val">12+</span><span class="stat-lbl">Modules</span></div>
+        <div class="stat-item"><span class="stat-val">100%</span><span class="stat-lbl">Organized</span></div>
+        <div class="stat-item"><span class="stat-val">24/7</span><span class="stat-lbl">Access</span></div>
+      </div>
+      <div class="features">
+        <div class="pill"><span class="dot"></span>Exam Tracker</div>
+        <div class="pill"><span class="dot"></span>Study Sessions</div>
+        <div class="pill"><span class="dot"></span>Priority Engine</div>
+        <div class="pill"><span class="dot"></span>Notes &amp; Resources</div>
+        <div class="pill"><span class="dot"></span>Streak Rewards</div>
+        <div class="pill"><span class="dot"></span>Leaderboard</div>
+      </div>
+    </div>
+
+    <!-- RIGHT LOGIN PANEL -->
+    <div class="login-panel">
+      <div class="login-card">
+        <div class="card-header">
+          <h2>Welcome back 👋</h2>
+          <p>Sign in to your study planner account</p>
+        </div>
+
+        <div class="db-status">
+          <div class="db-dot" id="dbDot"></div>
+          <span id="dbLabel">Checking server…</span>
+        </div>
+
+        <div class="login-alert" id="loginAlert" style="display:none">
+          <span id="alertIcon">⚠</span>&nbsp;<span id="alertMsg"></span>
+        </div>
+
+        <div class="role-toggle">
+          <input type="radio" name="role" id="roleStudent" value="student" checked>
+          <label for="roleStudent">🎓 Student</label>
+          <input type="radio" name="role" id="roleAdmin" value="admin">
+          <label for="roleAdmin">🛡 Admin</label>
+        </div>
+
+        <div class="field">
+          <label for="student_id">Student ID</label>
+          <div class="input-wrap">
+            <svg class="iicon" xmlns="http://www.w3.org/2000/svg" width="16" height="16" fill="currentColor" viewBox="0 0 16 16">
+              <path d="M8 8a3 3 0 1 0 0-6 3 3 0 0 0 0 6zm2-3a2 2 0 1 1-4 0 2 2 0 0 1 4 0zm4 8c0 1-1 1-1 1H3s-1 0-1-1 1-4 6-4 6 3 6 4zm-1-.004c-.001-.246-.154-.986-.832-1.664C11.516 10.68 10.029 10 8 10c-2.03 0-3.516.68-4.168 1.332-.678.678-.83 1.418-.832 1.664h10z"/>
+            </svg>
+            <input type="text" id="student_id" placeholder="e.g. STU-2024-001" autocomplete="username">
+          </div>
+        </div>
+
+        <div class="field">
+          <label for="password">Password</label>
+          <div class="input-wrap">
+            <svg class="iicon" xmlns="http://www.w3.org/2000/svg" width="16" height="16" fill="currentColor" viewBox="0 0 16 16">
+              <path d="M8 1a2 2 0 0 1 2 2v4H6V3a2 2 0 0 1 2-2zm3 6V3a3 3 0 0 0-6 0v4a2 2 0 0 0-2 2v5a2 2 0 0 0 2 2h6a2 2 0 0 0 2-2V9a2 2 0 0 0-2-2z"/>
+            </svg>
+            <input type="password" id="password" placeholder="Enter your password" autocomplete="current-password">
+            <button type="button" class="toggle-pw" id="togglePw" title="Show/hide">👁</button>
+          </div>
+        </div>
+
+        <button class="btn-login" id="loginBtn" onclick="doLogin()">Sign In</button>
+
+        <div class="divider">or</div>
+        <div class="footer-note">use any credentials to preview the dashboard</div>
+        <div class="footer-note" style="margin-top:8px;font-size:.75rem;opacity:.6;">
+          Backend: <code style="color:#ff9100">http://localhost:5000/api</code>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<div id="screen-dashboard" style="display:flex;">
+
+<nav class="db-sidebar">
+  <div class="db-logo">
+    <div class="db-logo-text">Study<em>Planner</em></div>
+    <div class="db-logo-sub">Academic Hub</div>
+  </div>
+  <div class="sidebar-section">Overview</div>
+  <div class="nav-item active" onclick="showPage('dashboard',this)"><span class="nav-icon">📊</span><span>Dashboard</span></div>
+  <div class="nav-item" onclick="showPage('schedule',this)"><span class="nav-icon">📅</span><span>Schedule</span></div>
+  <div class="nav-item" onclick="showPage('subjects',this)"><span class="nav-icon">📚</span><span>Subjects</span></div>
+  <div class="nav-item" onclick="showPage('events',this)"><span class="nav-icon">🗓</span><span>Events</span></div>
+  <div class="sidebar-section">Track</div>
+  <div class="nav-item" onclick="showPage('tasks',this)"><span class="nav-icon">✅</span><span>Tasks</span></div>
+  <div class="nav-item" onclick="showPage('sessions',this)"><span class="nav-icon">⏱</span><span>Study Sessions</span></div>
+  <div class="nav-item" onclick="showPage('analytics',this)"><span class="nav-icon">📈</span><span>Analytics</span></div>
+  <div class="sidebar-section">Community</div>
+  <div class="nav-item" onclick="showPage('leaderboard',this)"><span class="nav-icon">🏆</span><span>Leaderboard</span></div>
+  <div class="nav-item" onclick="showPage('groups',this)"><span class="nav-icon">👥</span><span>Study Groups</span></div>
+  <div class="user-block">
+    <div class="user-info">
+      <div class="user-avatar" id="dash-avatar">JM</div>
+      <div><div class="user-name" id="dash-username">JANNATUL MAWA</div><div class="user-role" id="dash-role">Student · CSE</div></div>
+    </div>
+    <div class="api-status">
+      <div class="api-dot" id="apiDot"></div>
+      <span id="apiLabel">API connected</span>
+    </div>
+  </div>
+  <div class="logout-btn" onclick="doLogout()">⬅ Logout</div>
+</nav>
+
+<div class="db-main">
+
+<!-- DASHBOARD PAGE -->
+<div id="page-dashboard" class="db-page active">
+  <div class="welcome-banner" id="welcomeBanner">
+    <div class="welcome-text">Welcome back, <span class="welcome-user" id="welcomeName">Student</span>! 🎓</div>
+    <div style="font-size:12px;color:var(--muted)" id="loginTimestamp"></div>
+  </div>
+  <div class="page-header">
+    <div class="page-title">Good morning,STUDENT <span id="greetName">Student</span> 👋</div>
+    <div class="page-sub">Trimester 2 · Week 7 of 16 · <span class="streak-badge">🔥 12-day streak</span></div>
+  </div>
+  <div class="stats-row">
+    <div class="stat-card"><div class="stat-label">Study Hours (Week)</div><div class="stat-value" style="color:var(--accent)">18.5</div><div class="stat-change up">↑ 3.2h from last week</div></div>
+    <div class="stat-card"><div class="stat-label">Tasks Completed</div><div class="stat-value" style="color:var(--success)">24</div><div class="stat-change up">↑ 4 this week</div></div>
+    <div class="stat-card"><div class="stat-label">Avg Performance</div><div class="stat-value" style="color:var(--accent2)">72%</div><div class="stat-change warn">↓ 3% from mid</div></div>
+    <div class="stat-card"><div class="stat-label">High Priority</div><div class="stat-value" style="color:var(--danger)">3</div><div class="stat-change" style="color:var(--muted)">subjects need focus</div></div>
+  </div>
+  <div class="grid-2">
+    <div class="card"><div class="card-hdr"><div class="card-title">Today's Schedule</div><button class="db-btn" onclick="showPage('schedule',null)">View all</button></div><div id="today-schedule"></div></div>
+    <div class="card"><div class="card-hdr"><div class="card-title">Upcoming Events</div></div><div id="upcoming-events-dash"></div></div>
+  </div>
+  <div class="grid-2">
+    <div class="card"><div class="card-hdr"><div class="card-title">Weekly Study Time</div></div><div class="chart-wrap"><canvas id="weeklyChart"></canvas></div></div>
+    <div class="card"><div class="card-hdr"><div class="card-title">Subject Performance</div></div><div class="chart-wrap"><canvas id="perfChart"></canvas></div></div>
+  </div>
+</div>
+
+<!-- SCHEDULE -->
+<div id="page-schedule" class="db-page">
+  <div class="page-header" style="display:flex;justify-content:space-between;align-items:flex-start">
+    <div><div class="page-title">Daily Schedule</div><div class="page-sub">Priority-based study plan</div></div>
+    <button class="db-btn db-btn-primary" onclick="openModal('addSchedule')">+ Generate Today</button>
+  </div>
+  <div class="card">
+    <div class="card-hdr"><div class="card-title">Today's Plan</div><div style="font-size:12px;color:var(--muted)">Total: 360 min planned</div></div>
+    <div id="schedule-list"></div>
+  </div>
+</div>
+
+<!-- SUBJECTS -->
+<div id="page-subjects" class="db-page">
+  <div class="page-header" style="display:flex;justify-content:space-between;align-items:flex-start">
+    <div><div class="page-title">Subjects</div><div class="page-sub">Trimester 2 — 5 subjects enrolled</div></div>
+    <button class="db-btn db-btn-primary" onclick="openModal('addSubject')">+ Add Subject</button>
+  </div>
+  <div class="card"><div class="card-hdr"><div class="card-title">Enrolled Subjects &amp; Priority</div></div><div class="subject-list" id="subject-list"></div></div>
+</div>
+
+<!-- EVENTS -->
+<div id="page-events" class="db-page">
+  <div class="page-header" style="display:flex;justify-content:space-between;align-items:flex-start">
+    <div><div class="page-title">Academic Events</div><div class="page-sub">CTs, Midterms, Finals &amp; Assignments</div></div>
+    <button class="db-btn db-btn-primary" onclick="openModal('addEvent')">+ Add Event</button>
+  </div>
+  <div class="card"><div class="card-hdr"><div class="card-title">All Events — Trimester 2</div></div><div class="event-list" id="event-list-full"></div></div>
+</div>
+
+<!-- TASKS -->
+<div id="page-tasks" class="db-page">
+  <div class="page-header" style="display:flex;justify-content:space-between;align-items:flex-start">
+    <div><div class="page-title">Task Manager</div><div class="page-sub">Track assignments and to-dos</div></div>
+    <button class="db-btn db-btn-primary" onclick="openModal('addTask')">+ Add Task</button>
+  </div>
+  <div class="grid-2" style="margin-bottom:16px">
+    <div class="stat-card"><div class="stat-label">Pending</div><div class="stat-value" id="task-pending-count" style="color:var(--warn)">0</div></div>
+    <div class="stat-card"><div class="stat-label">Completed</div><div class="stat-value" id="task-done-count" style="color:var(--success)">0</div></div>
+  </div>
+  <div class="card"><div class="card-hdr"><div class="card-title">All Tasks</div></div><div id="task-list"></div></div>
+</div>
+
+<!-- SESSIONS -->
+<div id="page-sessions" class="db-page">
+  <div class="page-header"><div class="page-title">Study Sessions</div><div class="page-sub">Log and track focused study time</div></div>
+  <div class="grid-2">
+    <div class="card" style="text-align:center">
+      <div class="card-title" style="margin-bottom:4px">Active Timer</div>
+      <div class="session-timer" id="timer-display">00:00:00</div>
+      <div style="font-size:13px;color:var(--muted);margin-bottom:12px">Subject: <span id="timer-subject" style="color:var(--text)">DBMS</span></div>
+      <div class="timer-controls">
+        <button class="db-btn db-btn-primary" id="timer-btn" onclick="toggleTimer()">▶ Start</button>
+        <button class="db-btn" onclick="resetTimer()">↺ Reset</button>
+      </div>
+    </div>
+    <div class="card"><div class="card-hdr"><div class="card-title">Recent Sessions</div></div><div id="session-list"></div></div>
+  </div>
+  <div class="card" style="margin-top:16px">
+    <div class="card-hdr"><div class="card-title">Total Study Time by Subject</div></div>
+    <div class="chart-wrap" style="height:160px"><canvas id="sessionChart"></canvas></div>
+  </div>
+</div>
+
+<!-- ANALYTICS -->
+<div id="page-analytics" class="db-page">
+  <div class="page-header"><div class="page-title">Analytics</div><div class="page-sub">Performance insights and trends</div></div>
+  <div class="stats-row">
+    <div class="stat-card"><div class="stat-label">Best Subject</div><div class="stat-value" style="color:var(--success);font-size:18px">OS</div><div class="stat-change up">81% avg</div></div>
+    <div class="stat-card"><div class="stat-label">Needs Focus</div><div class="stat-value" style="color:var(--danger);font-size:18px">MATHS</div><div class="stat-change" style="color:var(--danger)">58% avg</div></div>
+    <div class="stat-card"><div class="stat-label">Total Hours</div><div class="stat-value" style="color:var(--accent)">67</div><div class="stat-change up">this trimester</div></div>
+    <div class="stat-card"><div class="stat-label">Points</div><div class="stat-value" style="color:var(--accent2)">1240</div><div class="stat-change up">rank #3</div></div>
+  </div>
+  <div class="analytics-grid">
+    <div class="card"><div class="card-hdr"><div class="card-title">Mark Trend (CT → Mid)</div></div><div class="chart-wrap" style="height:180px"><canvas id="trendChart"></canvas></div></div>
+    <div class="card"><div class="card-hdr"><div class="card-title">Study Time Distribution</div></div><div class="chart-wrap" style="height:180px"><canvas id="donutChart"></canvas></div></div>
+    <div class="card"><div class="card-hdr"><div class="card-title">Priority Breakdown</div></div><div id="priority-breakdown"></div></div>
+    <div class="card"><div class="card-hdr"><div class="card-title">Monthly Review</div></div><div id="monthly-review"></div></div>
+  </div>
+</div>
+
+<!-- LEADERBOARD -->
+<div id="page-leaderboard" class="db-page">
+  <div class="page-header"><div class="page-title">Leaderboard</div><div class="page-sub">Top students by study time this trimester</div></div>
+  <div class="grid-2">
+    <div class="card"><div class="card-hdr"><div class="card-title">📚 Study Hours Ranking</div></div><div id="lb-hours"></div></div>
+    <div class="card"><div class="card-hdr"><div class="card-title">🏆 Points Ranking</div></div><div id="lb-points"></div></div>
+  </div>
+</div>
+
+<!-- GROUPS -->
+<div id="page-groups" class="db-page">
+  <div class="page-header" style="display:flex;justify-content:space-between;align-items:flex-start">
+    <div><div class="page-title">Study Groups</div><div class="page-sub">Collaborate and study together</div></div>
+    <button class="db-btn db-btn-primary" onclick="openModal('addGroup')">+ Create Group</button>
+  </div>
+  <div style="display:grid;grid-template-columns:repeat(auto-fill,minmax(220px,1fr));gap:14px" id="group-grid"></div>
+</div>
+
+</div><!-- end db-main -->
+
+<!-- MODALS -->
+<div class="overlay" id="overlay" onclick="if(event.target===this)closeModal()">
+  <div class="modal" id="modal-addSubject" style="display:none">
+    <div class="modal-title">Add Subject</div>
+    <div class="form-group"><label class="form-label">Subject Name</label><input class="form-input" id="sub-name" placeholder="e.g. Database Management"></div>
+    <div class="form-row">
+      <div class="form-group"><label class="form-label">Faculty</label><input class="form-input" id="sub-faculty" placeholder="Dr. Khan"></div>
+      <div class="form-group"><label class="form-label">Credit Hours</label><input class="form-input" type="number" id="sub-credit" value="3"></div>
+    </div>
+    <div class="modal-actions"><button class="db-btn" onclick="closeModal()">Cancel</button><button class="db-btn db-btn-primary" onclick="addSubject()">Add Subject</button></div>
+  </div>
+  <div class="modal" id="modal-addEvent" style="display:none">
+    <div class="modal-title">Add Event</div>
+    <div class="form-group"><label class="form-label">Event Title</label><input class="form-input" id="ev-title" placeholder="e.g. CT-1 DBMS"></div>
+    <div class="form-row">
+      <div class="form-group"><label class="form-label">Type</label><select class="form-input" id="ev-type"><option>CT</option><option>MID</option><option>FINAL</option><option>ASSIGNMENT</option><option>HOLIDAY</option></select></div>
+      <div class="form-group"><label class="form-label">Date</label><input class="form-input" type="date" id="ev-date"></div>
+    </div>
+    <div class="form-group"><label class="form-label">Subject</label><select class="form-input" id="ev-subject"></select></div>
+    <div class="modal-actions"><button class="db-btn" onclick="closeModal()">Cancel</button><button class="db-btn db-btn-primary" onclick="addEvent()">Add Event</button></div>
+  </div>
+  <div class="modal" id="modal-addTask" style="display:none">
+    <div class="modal-title">Add Task</div>
+    <div class="form-group"><label class="form-label">Task Title</label><input class="form-input" id="task-title-inp" placeholder="e.g. Complete lab report"></div>
+    <div class="form-row">
+      <div class="form-group"><label class="form-label">Due Date</label><input class="form-input" type="date" id="task-due"></div>
+      <div class="form-group"><label class="form-label">Priority</label><select class="form-input" id="task-pri"><option>HIGH</option><option>MEDIUM</option><option>LOW</option></select></div>
+    </div>
+    <div class="form-group"><label class="form-label">Subject</label><select class="form-input" id="task-sub"></select></div>
+    <div class="modal-actions"><button class="db-btn" onclick="closeModal()">Cancel</button><button class="db-btn db-btn-primary" onclick="addTask()">Add Task</button></div>
+  </div>
+  <div class="modal" id="modal-addSchedule" style="display:none">
+    <div class="modal-title">Generate Schedule</div>
+    <div style="font-size:13.5px;color:var(--muted);margin-bottom:16px;line-height:1.6">Auto-generates today's schedule based on priority scores:<br><br>🔴 HIGH priority → 120 min<br>🟡 MEDIUM priority → 90 min<br>🟢 LOW priority → 60 min</div>
+    <div class="modal-actions"><button class="db-btn" onclick="closeModal()">Cancel</button><button class="db-btn db-btn-primary" onclick="generateSchedule()">Generate</button></div>
+  </div>
+  <div class="modal" id="modal-addGroup" style="display:none">
+    <div class="modal-title">Create Study Group</div>
+    <div class="form-group"><label class="form-label">Group Name</label><input class="form-input" id="grp-name" placeholder="e.g. DBMS Study Circle"></div>
+    <div class="form-group"><label class="form-label">Subject</label><select class="form-input" id="grp-sub"></select></div>
+    <div class="modal-actions"><button class="db-btn" onclick="closeModal()">Cancel</button><button class="db-btn db-btn-primary" onclick="addGroup()">Create Group</button></div>
+  </div>
+</div>
+
+</div><!-- end screen-dashboard -->
+
+<script>
+
+const API_BASE = 'http://localhost:5000/api';
+
+let currentUser = null;
+let authToken   = null;
+
+window.addEventListener('DOMContentLoaded', () => {
+  const savedToken = sessionStorage.getItem('sp_token');
+  const savedUser  = sessionStorage.getItem('sp_user');
+
+  if (savedToken && savedUser) {
+    authToken   = savedToken;
+    currentUser = JSON.parse(savedUser);
+    showDashboard(currentUser);
+  } else {
+    showLoginScreen();
+    checkServerHealth();
+  }
+
+  // Password toggle
+  document.getElementById('togglePw').addEventListener('click', function() {
+    const inp = document.getElementById('password');
+    inp.type = inp.type === 'text' ? 'password' : 'text';
+    this.textContent = inp.type === 'text' ? '🙈' : '👁';
+  });
+
+  // Enter key support
+  document.getElementById('password').addEventListener('keydown', e => {
+    if (e.key === 'Enter') doLogin();
+  });
+  document.getElementById('student_id').addEventListener('keydown', e => {
+    if (e.key === 'Enter') doLogin();
+  });
+});
+
+async function checkServerHealth() {
+  const dot   = document.getElementById('dbDot');
+  const label = document.getElementById('dbLabel');
+  try {
+    const res = await fetch(`${API_BASE}/health`, { signal: AbortSignal.timeout(3000) });
+    if (res.ok) {
+      dot.classList.add('ok');
+      label.textContent = 'Server connected ✓';
+    } else {
+      label.textContent = 'Server error';
+    }
+  } catch {
+    label.textContent = 'Server offline';
+  }
+}
+
+function showLoginScreen() {
+  document.getElementById('screen-login').style.display = 'flex';
+  document.getElementById('screen-dashboard').style.display = 'none';
+}
+
+function showDashboard(user) {
+  document.getElementById('screen-login').style.display = 'none';
+  document.getElementById('screen-dashboard').style.display = 'flex';
+
+  // Populate user info in sidebar
+  const name = user.name || user.student_id || 'Student';
+  const initials = name.split(' ').map(w=>w[0]).join('').toUpperCase().slice(0,2);
+  document.getElementById('dash-avatar').textContent  = initials;
+  document.getElementById('dash-username').textContent = name.toUpperCase();
+  document.getElementById('dash-role').textContent    = (user.role || 'student') + ' · CSE';
+  document.getElementById('welcomeName').textContent  = name;
+  document.getElementById('greetName').textContent    = name.split(' ')[0];
+  document.getElementById('loginTimestamp').textContent = 'Logged in at ' + new Date().toLocaleTimeString();
+
+  // Check API from dashboard
+  pingApiFromDashboard();
+
+  // Boot dashboard — load live data first, then render
+  loadAllData().then(() => {
+    renderDashboard();
+    renderSubjects();
+    renderEvents && renderEvents();
+    renderTasks  && renderTasks();
+    renderGroups && renderGroups();
+    setTimeout(initCharts, 300);
+  });
+}
+
+// ═══════════════════════════════════════
+// LOGIN LOGIC
+// ═══════════════════════════════════════
+async function doLogin() {
+  hideAlert();
+  const studentId = document.getElementById('student_id').value.trim();
+  const password  = document.getElementById('password').value.trim();
+  const role      = document.querySelector('input[name="role"]:checked').value;
+  const btn       = document.getElementById('loginBtn');
+
+  if (!studentId || !password) {
+    showAlert('Please fill in all fields.', 'error');
+    return;
+  }
+
+  btn.disabled = true;
+  btn.innerHTML = '<span class="spinner"></span>Signing in…';
+
+  // Try real backend first
+  let user = null;
+  try {
+    const res = await fetch(`${API_BASE}/auth/login`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ student_id: studentId, password, role }),
+      signal: AbortSignal.timeout(4000)
+    });
+    const data = await res.json();
+
+    if (data.success) {
+      authToken   = data.token;
+      currentUser = data.user || { name: studentId, student_id: studentId, role };
+      // Save session
+      sessionStorage.setItem('sp_token', authToken);
+      sessionStorage.setItem('sp_user', JSON.stringify(currentUser));
+      transitionToDashboard(currentUser, 'Login successful! Loading dashboard…');
+      return;
+    } else {
+      // Backend responded but credentials wrong
+      showAlert(data.message || 'Invalid credentials.', 'error');
+      btn.disabled = false;
+      btn.innerHTML = 'Sign In';
+      return;
+    }
+  } catch (err) {
+    // Server offline → demo mode
+    console.log('Backend offline, using demo mode:', err.message);
+  }
+
+  // DEMO MODE — server not reachable
+  showAlert('⚡Processing....', 'success');
+  setTimeout(() => {
+    const demoUser = {
+      name: studentId.includes('-') ? 'Student User' : studentId,
+      student_id: studentId,
+      role: role,
+      demo: true
+    };
+    sessionStorage.setItem('sp_token', 'demo_token_' + Date.now());
+    sessionStorage.setItem('sp_user', JSON.stringify(demoUser));
+    authToken   = 'ENTER';
+    currentUser = demoUser;
+    transitionToDashboard(demoUser, 'Welcome to StudyPlanner!');
+  }, 600);
+}
+
+function transitionToDashboard(user, msg) {
+  const overlay = document.getElementById('transition-overlay');
+  document.getElementById('trans-msg').textContent = msg;
+  overlay.classList.add('active');
+  // Re-animate the bar
+  const fill = overlay.querySelector('.transition-fill');
+  fill.style.animation = 'none';
+  fill.offsetHeight; // reflow
+  fill.style.animation = 'loadBar 1.2s ease forwards';
+
+  setTimeout(() => {
+    overlay.classList.remove('active');
+    showDashboard(user);
+  }, 1400);
+}
+
+// ═══════════════════════════════════════
+// LOGOUT
+// ═══════════════════════════════════════
+function doLogout() {
+  sessionStorage.removeItem('sp_token');
+  sessionStorage.removeItem('sp_user');
+  authToken   = null;
+  currentUser = null;
+  chartsInited = false; // reset charts for next login
+
+  // Reset login form
+  document.getElementById('student_id').value = '';
+  document.getElementById('password').value   = '';
+  document.getElementById('loginBtn').disabled = false;
+  document.getElementById('loginBtn').innerHTML = 'Sign In';
+  hideAlert();
+
+  showLoginScreen();
+  checkServerHealth();
+}
+
+// ═══════════════════════════════════════
+// ALERT HELPERS
+// ═══════════════════════════════════════
+function showAlert(msg, type = 'error') {
+  const el  = document.getElementById('loginAlert');
+  const txt = document.getElementById('alertMsg');
+  const ico = document.getElementById('alertIcon');
+  el.className = 'login-alert ' + type;
+  el.style.display = 'flex';
+  ico.textContent  = type === 'error' ? '⚠' : '✓';
+  txt.textContent  = msg;
+}
+function hideAlert() {
+  const el = document.getElementById('loginAlert');
+  el.style.display = 'none';
+}
+
+// ═══════════════════════════════════════
+// API PING FROM DASHBOARD
+// ═══════════════════════════════════════
+async function pingApiFromDashboard() {
+  const dot   = document.getElementById('apiDot');
+  const label = document.getElementById('apiLabel');
+  try {
+    const res = await fetch(`${API_BASE}/health`, { signal: AbortSignal.timeout(3000) });
+    if (res.ok) {
+      dot.classList.remove('offline');
+      label.textContent = 'API connected';
+    } else {
+      throw new Error();
+    }
+  } catch {
+    dot.classList.add('offline');
+    label.textContent = 'LOGOUT';
+  }
+}
+
+// ═══════════════════════════════════════
+// ══ DASHBOARD APP LOGIC (from app.js) ══
+// ═══════════════════════════════════════
+
+const COLORS   = ['#6c8eff','#a78bfa','#34d399','#fbbf24','#f87171','#38bdf8'];
+const AVATARBG = ['#6c8eff','#a78bfa','#34d399','#f87171','#fbbf24'];
+
+// ── Live data from MySQL (populated on login) ────────────────
+let subjects = [];
+let events   = [];
+let tasks    = [];
+let schedule = [];
+let sessions = [];
+let groups   = [];
+
+// ── Generic API helper ───────────────────────────────────────
+async function apiCall(path, method = 'GET', body = null) {
+  const opts = {
+    method,
+    headers: {
+      'Content-Type': 'application/json',
+      ...(authToken ? { 'Authorization': 'Bearer ' + authToken } : {})
+    },
+    signal: AbortSignal.timeout(8000)
+  };
+  if (body) opts.body = JSON.stringify(body);
+  const res  = await fetch(API_BASE + path, opts);
+  const data = await res.json();
+  if (!data.success && res.status >= 400) throw new Error(data.message || 'API error');
+  return data;
+}
+
+// ── Load all data from the backend ──────────────────────────
+async function loadAllData() {
+  try {
+    const [subRes, evRes, taskRes] = await Promise.all([
+      apiCall('/subjects'),
+      apiCall('/events'),
+      apiCall('/tasks'),
+    ]);
+
+    // Map backend fields → frontend shape
+    subjects = (subRes.data || []).map(s => ({
+      id:       s.id,
+      name:     s.name,
+      faculty:  s.faculty_name || 'TBD',
+      color:    COLORS[subjects.length % COLORS.length] || '#6c8eff',
+      priority: s.level || 'MEDIUM',
+      avg:      s.avg_score || 0
+    }));
+
+    events = (evRes.data || []).map(e => ({
+      id:        e.id,
+      title:     e.title,
+      type:      e.type,
+      date:      e.event_date ? e.event_date.slice(0,10) : '',
+      subjectId: e.subject_id || null
+    }));
+
+    tasks = (taskRes.data || []).map(t => ({
+      id:        t.task_id || t.id,
+      title:     t.title,
+      subjectId: t.subject_id || null,
+      due:       t.due_date ? t.due_date.slice(0,10) : '',
+      priority:  t.priority_level || 'MEDIUM',
+      done:      t.status === 'COMPLETED'
+    }));
+
+    schedule = subjects.map(s => ({
+      subjectId: s.id,
+      planned:   s.priority === 'HIGH' ? 120 : s.priority === 'MEDIUM' ? 90 : 60,
+      done:      0
+    }));
+
+  } catch(err) {
+    console.warn('Could not load data from API:', err.message);
+  }
+}
+const leaderboardH = [
+  {name:'Miftahul',      hours:82, avatar:'MF', bg:'#6c8eff'},
+  {name:'Subah Noor',    hours:76, avatar:'SN', bg:'#a78bfa'},
+  {name:'Jannatul Mawa', hours:67, avatar:'JM', bg:'#34d399'},
+  {name:'Farhan Miah',   hours:61, avatar:'FM', bg:'#fbbf24'},
+  {name:'Tahmid Hasan',  hours:54, avatar:'TH', bg:'#f87171'},
+];
+const leaderboardP = [
+  {name:'Subah Noor',    points:1580, avatar:'SN', bg:'#a78bfa'},
+  {name:'Miftahul',      points:1420, avatar:'MF', bg:'#6c8eff'},
+  {name:'Jannatul Mawa', points:1240, avatar:'JM', bg:'#34d399'},
+  {name:'Tahmid Hasan',  points:980,  avatar:'TH', bg:'#f87171'},
+  {name:'Arif Rahman',   points:860,  avatar:'AR', bg:'#fbbf24'},
+];
+
+// Timer
+let timerRunning = false, timerSec = 0, timerInterval = null;
+function pad(n){ return String(n).padStart(2,'0'); }
+function toggleTimer(){
+  timerRunning = !timerRunning;
+  document.getElementById('timer-btn').textContent = timerRunning ? '⏸ Pause' : '▶ Start';
+  if(timerRunning){ timerInterval = setInterval(()=>{ timerSec++; updateTimerDisplay(); },1000); }
+  else { clearInterval(timerInterval); }
+}
+function resetTimer(){
+  clearInterval(timerInterval); timerRunning=false; timerSec=0;
+  document.getElementById('timer-btn').textContent = '▶ Start';
+  updateTimerDisplay();
+}
+function updateTimerDisplay(){
+  const h=Math.floor(timerSec/3600), m=Math.floor((timerSec%3600)/60), s=timerSec%60;
+  document.getElementById('timer-display').textContent = pad(h)+':'+pad(m)+':'+pad(s);
+}
+function getSubject(id){ return subjects.find(s=>s.id===id); }
+
+function renderDashboard(){
+  let html='';
+  schedule.forEach(sc=>{
+    const sub=getSubject(sc.subjectId); const pct=Math.round(sc.done/sc.planned*100);
+    html+=`<div class="schedule-row"><div class="schedule-subject" style="color:${sub.color}">${sub.name}</div><div><div class="progress-bar"><div class="progress-fill" style="width:${pct}%;background:${sub.color}"></div></div></div><div class="progress-label">${sc.done}/${sc.planned}m</div></div>`;
+  });
+  document.getElementById('today-schedule').innerHTML=html;
+  let evHtml='';
+  events.slice(0,4).forEach(ev=>{
+    const d=new Date(ev.date); const sub=ev.subjectId?getSubject(ev.subjectId):null;
+    evHtml+=`<div class="event-item"><div class="event-date-box" style="background:rgba(255,87,51,.1)"><div class="event-day" style="color:var(--accent)">${d.getDate()}</div><div class="event-month" style="color:var(--muted)">${d.toLocaleString('default',{month:'short'})}</div></div><div style="flex:1"><div style="font-size:13.5px;font-weight:500">${ev.title}</div><div style="font-size:11px;color:var(--muted)">${sub?sub.name:'—'}</div></div><span class="event-type type-${ev.type}">${ev.type}</span></div>`;
+  });
+  document.getElementById('upcoming-events-dash').innerHTML=evHtml;
+}
+
+function renderSubjects(){
+  const colors={HIGH:'badge-high',MEDIUM:'badge-medium',LOW:'badge-low'};
+  document.getElementById('subject-list').innerHTML=subjects.map(s=>`<div class="subject-item"><div class="subject-dot" style="background:${s.color}"></div><div style="flex:1"><div class="subject-name">${s.name}</div><div class="subject-faculty">${s.faculty} · Avg: ${s.avg}%</div></div><span class="badge ${colors[s.priority]}">${s.priority}</span></div>`).join('');
+  ['ev-subject','task-sub','grp-sub'].forEach(id=>{
+    const el=document.getElementById(id);
+    if(el) el.innerHTML=subjects.map(s=>`<option value="${s.id}">${s.name}</option>`).join('');
+  });
+}
+
+function renderEvents(){
+  document.getElementById('event-list-full').innerHTML=events.map(ev=>{
+    const d=new Date(ev.date); const sub=ev.subjectId?getSubject(ev.subjectId):null;
+    return `<div class="event-item"><div class="event-date-box" style="background:rgba(255,87,51,.08)"><div class="event-day" style="color:var(--accent)">${d.getDate()}</div><div class="event-month" style="color:var(--muted)">${d.toLocaleString('default',{month:'short'})}</div></div><div style="flex:1"><div style="font-size:13.5px;font-weight:500">${ev.title}</div><div style="font-size:11px;color:var(--muted)">${sub?sub.name:'General'} · ${d.toLocaleDateString()}</div></div><span class="event-type type-${ev.type}">${ev.type}</span></div>`;
+  }).join('');
+}
+
+function renderTasks(){
+  const pc={HIGH:'badge-high',MEDIUM:'badge-medium',LOW:'badge-low'};
+  let pending=0,done=0;
+  document.getElementById('task-list').innerHTML=tasks.map(t=>{
+    const sub=getSubject(t.subjectId);
+    if(t.done)done++;else pending++;
+    return `<div class="task-item"><div class="task-check ${t.done?'done':''}" onclick="toggleTask(${t.id})">${t.done?'✓':''}</div><div style="flex:1"><div class="task-title ${t.done?'done':''}">${t.title}</div><div class="task-meta">${sub?sub.name:'—'} · Due ${new Date(t.due).toLocaleDateString()}</div></div><span class="badge ${pc[t.priority]}">${t.priority}</span></div>`;
+  }).join('');
+  document.getElementById('task-pending-count').textContent=pending;
+  document.getElementById('task-done-count').textContent=done;
+}
+
+function toggleTask(id){ const t=tasks.find(t=>t.id===id); if(t)t.done=!t.done; renderTasks(); }
+
+function renderSchedule(){
+  document.getElementById('schedule-list').innerHTML=schedule.map(sc=>{
+    const sub=getSubject(sc.subjectId); const pct=Math.round(sc.done/sc.planned*100);
+    return `<div class="schedule-row"><div class="schedule-subject" style="color:${sub.color}">${sub.name}</div><div><div class="progress-bar"><div class="progress-fill" style="width:${pct}%;background:${sub.color}"></div></div><div style="font-size:10px;color:var(--muted);margin-top:3px">${pct}% done</div></div><div class="progress-label">${sc.planned} min</div></div>`;
+  }).join('');
+}
+
+function renderSessions(){
+  document.getElementById('session-list').innerHTML=sessions.map(s=>`<div class="event-item"><div style="flex:1"><div style="font-size:13.5px;font-weight:500">${s.subject}</div><div style="font-size:11px;color:var(--muted)">${s.date} · ${s.start}–${s.end}</div></div><div style="font-size:13px;color:var(--accent);font-weight:500">${s.duration} min</div></div>`).join('');
+}
+
+function renderLeaderboard(){
+  function buildLb(arr,valKey,suffix,elId){
+    const ranks=['🥇','🥈','🥉'];
+    document.getElementById(elId).innerHTML=arr.map((u,i)=>`<div class="lb-row"><div class="lb-rank ${i===0?'gold':i===1?'silver':i===2?'bronze':''}">${ranks[i]||i+1}</div><div class="lb-avatar" style="background:${u.bg}">${u.avatar}</div><div class="lb-name">${u.name}</div><div class="lb-points">${u[valKey]}${suffix}</div></div>`).join('');
+  }
+  buildLb(leaderboardH,'hours','h','lb-hours');
+  buildLb(leaderboardP,'points',' pts','lb-points');
+}
+
+function renderGroups(){
+  document.getElementById('group-grid').innerHTML=groups.map(g=>`<div class="group-card"><div style="font-size:15px;font-weight:500">${g.name}</div><div style="font-size:12px;color:var(--muted)">${g.subject}</div><div style="display:flex;align-items:center;justify-content:space-between;margin-top:8px"><div style="display:flex">${g.members.map((m,i)=>`<div class="group-avatar" style="background:${AVATARBG[i%AVATARBG.length]}">${m}</div>`).join('')}</div><div style="font-size:11px;color:var(--muted)">${g.members.length} members</div></div><div style="font-size:11px;color:var(--muted);margin-top:4px">Created by ${g.created}</div></div>`).join('');
+}
+
+function renderAnalytics(){
+  const pc={HIGH:'badge-high',MEDIUM:'badge-medium',LOW:'badge-low'};
+  document.getElementById('priority-breakdown').innerHTML=subjects.map(s=>`<div style="display:flex;align-items:center;gap:10px;padding:8px 0;border-bottom:1px solid var(--border)"><div style="width:10px;height:10px;border-radius:50%;background:${s.color};flex-shrink:0"></div><div style="flex:1;font-size:13px">${s.name}</div><span class="badge ${pc[s.priority]}">${s.priority}</span><div style="font-size:13px;color:var(--muted)">${s.avg}%</div></div>`).join('');
+  const months=[{m:'March',study:180,tasks:8,avg:71},{m:'April',study:240,tasks:12,avg:74},{m:'May (so far)',study:120,tasks:6,avg:69}];
+  document.getElementById('monthly-review').innerHTML=months.map(m=>`<div style="padding:8px 0;border-bottom:1px solid var(--border)"><div style="display:flex;justify-content:space-between;margin-bottom:4px"><span style="font-size:13px;font-weight:500">${m.m}</span><span style="font-size:12px;color:var(--accent)">${m.study}h studied</span></div><div style="display:flex;gap:12px"><span style="font-size:11px;color:var(--muted)">Tasks: ${m.tasks}</span><span style="font-size:11px;color:var(--muted)">Avg: ${m.avg}%</span></div></div>`).join('');
+}
+
+// Charts
+let chartsInited=false;
+function initCharts(){
+  if(chartsInited)return; chartsInited=true;
+  Chart.defaults.color='#7a829a'; Chart.defaults.borderColor='rgba(255,255,255,0.06)';
+  new Chart(document.getElementById('weeklyChart'),{type:'bar',data:{labels:['Mon','Tue','Wed','Thu','Fri','Sat','Sun'],datasets:[{label:'Hours',data:[3,2.5,4,2,3.5,2,1.5],backgroundColor:'rgba(255,87,51,.4)',borderColor:'#FF5733',borderWidth:1.5,borderRadius:4}]},options:{responsive:true,maintainAspectRatio:false,plugins:{legend:{display:false}},scales:{y:{ticks:{callback:v=>v+'h'}}}}});
+  new Chart(document.getElementById('perfChart'),{type:'bar',data:{labels:['DBMS','AI','Math','Networks','OS'],datasets:[{label:'Avg %',data:[65,78,58,72,81],backgroundColor:COLORS.map(c=>c+'66'),borderColor:COLORS,borderWidth:1.5,borderRadius:4}]},options:{responsive:true,maintainAspectRatio:false,plugins:{legend:{display:false}},scales:{y:{min:0,max:100,ticks:{callback:v=>v+'%'}}}}});
+  new Chart(document.getElementById('sessionChart'),{type:'bar',data:{labels:['DBMS','AI','Math','Networks','OS'],datasets:[{label:'Hours',data:[12,8,6,9,5],backgroundColor:COLORS.map(c=>c+'66'),borderColor:COLORS,borderWidth:1.5,borderRadius:4}]},options:{responsive:true,maintainAspectRatio:false,plugins:{legend:{display:false}},scales:{y:{ticks:{callback:v=>v+'h'}}}}});
+  new Chart(document.getElementById('trendChart'),{type:'line',data:{labels:['CT1','CT2','Mid'],datasets:subjects.map((s,i)=>({label:s.name,data:[s.avg-8,s.avg-2,s.avg],borderColor:COLORS[i],tension:.3,pointRadius:3,fill:false}))},options:{responsive:true,maintainAspectRatio:false,plugins:{legend:{display:false}},scales:{y:{min:30,max:100,ticks:{callback:v=>v+'%'}}}}});
+  new Chart(document.getElementById('donutChart'),{type:'doughnut',data:{labels:['DBMS','AI','Math','Networks','OS'],datasets:[{data:[30,20,15,22,13],backgroundColor:COLORS.slice(0,5).map(c=>c+'bb'),borderWidth:0}]},options:{responsive:true,maintainAspectRatio:false,cutout:'65%',plugins:{legend:{display:false}}}});
+}
+
+// Page navigation
+function showPage(name,el){
+  document.querySelectorAll('.db-page').forEach(p=>p.classList.remove('active'));
+  document.getElementById('page-'+name).classList.add('active');
+  document.querySelectorAll('.nav-item').forEach(n=>n.classList.remove('active'));
+  if(el)el.classList.add('active');
+  if(name==='dashboard'){renderDashboard();setTimeout(initCharts,100);}
+  if(name==='subjects') renderSubjects();
+  if(name==='events')   renderEvents();
+  if(name==='tasks')    renderTasks();
+  if(name==='schedule') renderSchedule();
+  if(name==='sessions'){renderSessions();setTimeout(initCharts,100);}
+  if(name==='analytics'){renderAnalytics();setTimeout(initCharts,100);}
+  if(name==='leaderboard') renderLeaderboard();
+  if(name==='groups')      renderGroups();
+}
+
+// Modals
+function openModal(name){
+  document.getElementById('overlay').classList.add('open');
+  document.querySelectorAll('.modal').forEach(m=>m.style.display='none');
+  document.getElementById('modal-'+name).style.display='block';
+}
+function closeModal(){
+  document.getElementById('overlay').classList.remove('open');
+  document.querySelectorAll('.modal').forEach(m=>m.style.display='none');
+}
+
+// CRUD
+async function addSubject(){
+  const name    = document.getElementById('sub-name').value.trim();
+  const faculty = document.getElementById('sub-faculty').value.trim();
+  if(!name) return;
+  try {
+    await apiCall('/subjects', 'POST', { name, faculty_name: faculty || 'TBD' });
+    // Reload subjects from DB so local array stays in sync
+    const res = await apiCall('/subjects');
+    subjects = (res.data || []).map(s => ({
+      id:s.id, name:s.name, faculty:s.faculty_name||'TBD',
+      color:COLORS[subjects.length%COLORS.length]||'#6c8eff',
+      priority:s.level||'MEDIUM', avg:s.avg_score||0
+    }));
+  } catch(err) {
+    alert('Could not save subject: ' + err.message); return;
+  }
+  document.getElementById('sub-name').value='';
+  document.getElementById('sub-faculty').value='';
+  closeModal(); renderSubjects();
+}
+async function addEvent(){
+  const title     = document.getElementById('ev-title').value.trim();
+  const type      = document.getElementById('ev-type').value;
+  const date      = document.getElementById('ev-date').value;
+  const subjectId = parseInt(document.getElementById('ev-subject').value) || null;
+  if(!title||!date) return;
+  try {
+    await apiCall('/events', 'POST', { title, type, event_date: date, subject_id: subjectId });
+    const res = await apiCall('/events');
+    events = (res.data||[]).map(e=>({
+      id:e.id, title:e.title, type:e.type,
+      date: e.event_date ? e.event_date.slice(0,10) : '',
+      subjectId: e.subject_id||null
+    }));
+  } catch(err) {
+    alert('Could not save event: ' + err.message); return;
+  }
+  document.getElementById('ev-title').value='';
+  closeModal(); renderEvents();
+}
+async function addTask(){
+  const title     = document.getElementById('task-title-inp').value.trim();
+  const due       = document.getElementById('task-due').value;
+  const priority  = document.getElementById('task-pri').value;
+  const subjectId = parseInt(document.getElementById('task-sub').value) || null;
+  if(!title) return;
+  try {
+    await apiCall('/tasks', 'POST', {
+      title, due_date: due||null, priority_level: priority, subject_id: subjectId
+    });
+    const res = await apiCall('/tasks');
+    tasks = (res.data||[]).map(t=>({
+      id: t.task_id||t.id, title:t.title,
+      subjectId: t.subject_id||null,
+      due: t.due_date ? t.due_date.slice(0,10) : '',
+      priority: t.priority_level||'MEDIUM',
+      done: t.status==='COMPLETED'
+    }));
+  } catch(err) {
+    alert('Could not save task: ' + err.message); return;
+  }
+  document.getElementById('task-title-inp').value='';
+  closeModal(); renderTasks();
+}
+function generateSchedule(){
+  schedule=subjects.map(s=>({subjectId:s.id,planned:s.priority==='HIGH'?120:s.priority==='MEDIUM'?90:60,done:0}));
+  closeModal(); renderSchedule(); showPage('schedule',null);
+}
+async function addGroup(){
+  const name  = document.getElementById('grp-name').value.trim();
+  const subId = parseInt(document.getElementById('grp-sub').value) || null;
+  const sub   = getSubject(subId);
+  if(!name) return;
+  try {
+    await apiCall('/groups', 'POST', { name, subject_id: subId||null });
+    // Optimistic local add (groups endpoint may not exist yet)
+    groups.push({id:Date.now(), name, subject:sub?sub.name:'General', members:['ME'], created:'You'});
+  } catch(err) {
+    // Fallback: add locally if groups API not yet implemented
+    groups.push({id:Date.now(), name, subject:sub?sub.name:'General', members:['ME'], created:'You'});
+  }
+  document.getElementById('grp-name').value='';
+  closeModal(); renderGroups();
+}
+</script>
+</body>
+</html>
